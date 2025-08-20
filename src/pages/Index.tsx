@@ -43,7 +43,7 @@ const Index = () => {
   }
 
   // Show no data message
-  if (!networkData) {
+  if (!networkData || (networkData.people.length === 0 && networkData.startups.length === 0)) {
     return (
       <div className="min-h-screen bg-gradient-network p-6 flex items-center justify-center">
         <div className="text-center">
@@ -58,15 +58,9 @@ const Index = () => {
           <h1 className="text-5xl font-bold mb-4 bg-gradient-primary bg-clip-text text-transparent">
             EVP Network
           </h1>
-          <p className="text-xl text-muted-foreground mb-8">
-            No network data available. Please contact an admin to upload data.
+          <p className="text-xl text-muted-foreground">
+            Network data is being prepared. Please check back soon.
           </p>
-          <Link to="/admin">
-            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-network">
-              <Settings className="w-4 h-4 mr-2" />
-              Admin Panel
-            </Button>
-          </Link>
         </div>
       </div>
     );

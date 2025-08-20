@@ -69,28 +69,48 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         return; // Data already loaded from localStorage in checkAuthStatus
       }
 
-      const { data, error } = await supabase!.functions.invoke('get-network-data');
-      
-      if (error) {
-        console.error('Error loading network data:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load network data",
-          variant: "destructive"
+      // Load data directly from database tables
+      const [peopleResult, startupsResult, relationshipsResult] = await Promise.all([
+        supabase!.from('people').select('*'),
+        supabase!.from('startups').select('*'),  
+        supabase!.from('relationships').select('*')
+      ]);
+
+      if (peopleResult.error || startupsResult.error || relationshipsResult.error) {
+        console.error('Error loading network data:', {
+          people: peopleResult.error,
+          startups: startupsResult.error,
+          relationships: relationshipsResult.error
         });
         return;
       }
 
-      if (data?.networkData) {
-        setNetworkDataState(data.networkData);
-      }
+      const networkData: NetworkData = {
+        people: peopleResult.data.map(p => ({
+          id: p.id,
+          name: p.name,
+          role: p.role,
+          interests: p.interests?.[0] || '',
+          linkedinWebsite: p.linkedin_website,
+          isFounder: p.is_founder
+        })),
+        startups: startupsResult.data.map(s => ({
+          id: s.id,
+          name: s.name,
+          domain: s.domain,
+          status: s.status,
+          url: s.url
+        })),
+        relationships: relationshipsResult.data.map(r => ({
+          personId: r.person_id,
+          startupId: r.startup_id,
+          role: r.role
+        }))
+      };
+
+      setNetworkDataState(networkData);
     } catch (error) {
       console.error('Error loading network data:', error);
-      toast({
-        title: "Error", 
-        description: "Failed to load network data",
-        variant: "destructive"
-      });
     }
   };
 
@@ -215,12 +235,54 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         return true;
       }
 
-      const { data: result, error } = await supabase!.functions.invoke('upload-network-data', {
-        body: { networkData: data, filename }
-      });
+      // Clear existing data and insert new data
+      const deleteResults = await Promise.all([
+        supabase!.from('relationships').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+        supabase!.from('people').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+        supabase!.from('startups').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+      ]);
 
-      if (error) {
-        console.error('Upload error:', error);
+      const deleteError = deleteResults.find(r => r.error)?.error;
+      if (deleteError) {
+        console.error('Delete error:', deleteError);
+        toast({
+          title: "Upload Failed",
+          description: "Failed to clear existing data",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      // Insert new data
+      const [peopleResult, startupsResult, relationshipsResult] = await Promise.all([
+        supabase!.from('people').insert(data.people.map(p => ({
+          id: p.id,
+          name: p.name,
+          role: p.role,
+          interests: p.interests ? [p.interests] : null,
+          linkedin_website: p.linkedinWebsite,
+          is_founder: p.isFounder || false
+        }))),
+        supabase!.from('startups').insert(data.startups.map(s => ({
+          id: s.id,
+          name: s.name,
+          domain: s.domain,
+          status: s.status,
+          url: s.url
+        }))),
+        supabase!.from('relationships').insert(data.relationships.map(r => ({
+          person_id: r.personId,
+          startup_id: r.startupId,
+          role: r.role
+        })))
+      ]);
+
+      if (peopleResult.error || startupsResult.error || relationshipsResult.error) {
+        console.error('Insert error:', {
+          people: peopleResult.error,
+          startups: startupsResult.error,
+          relationships: relationshipsResult.error
+        });
         toast({
           title: "Upload Failed",
           description: "Failed to upload network data",
@@ -229,16 +291,13 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         return false;
       }
 
-      if (result?.success) {
-        setNetworkDataState(data);
-        toast({
-          title: "Success",
-          description: `Uploaded ${result.counts.people} people, ${result.counts.startups} startups, and ${result.counts.relationships} relationships`
-        });
-        return true;
-      }
-
-      return false;
+      // Reload the data
+      await loadNetworkData();
+      toast({
+        title: "Success",
+        description: `Uploaded ${data.people.length} people, ${data.startups.length} startups, and ${data.relationships.length} relationships`
+      });
+      return true;
     } catch (error) {
       console.error('Upload error:', error);
       toast({
