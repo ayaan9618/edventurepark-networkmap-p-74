@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { NetworkData } from '@/types/network';
 
 interface AdminContextType {
@@ -15,12 +15,42 @@ const AdminContext = createContext<AdminContextType | undefined>(undefined);
 const ADMIN_PASSWORD = 'edventure2024';
 
 export const AdminProvider = ({ children }: { children: ReactNode }) => {
-  const [networkData, setNetworkData] = useState<NetworkData | null>(null);
+  const [networkData, setNetworkDataState] = useState<NetworkData | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Load data from localStorage on mount
+  useEffect(() => {
+    const savedData = localStorage.getItem('evp-network-data');
+    const savedAuth = localStorage.getItem('evp-admin-auth');
+    
+    if (savedData) {
+      try {
+        const parsedData = JSON.parse(savedData);
+        setNetworkDataState(parsedData);
+      } catch (error) {
+        console.error('Failed to load saved network data:', error);
+      }
+    }
+    
+    if (savedAuth === 'true') {
+      setIsAuthenticated(true);
+    }
+  }, []);
+
+  // Save data to localStorage whenever networkData changes
+  const setNetworkData = (data: NetworkData | null) => {
+    setNetworkDataState(data);
+    if (data) {
+      localStorage.setItem('evp-network-data', JSON.stringify(data));
+    } else {
+      localStorage.removeItem('evp-network-data');
+    }
+  };
 
   const login = (password: string): boolean => {
     if (password === ADMIN_PASSWORD) {
       setIsAuthenticated(true);
+      localStorage.setItem('evp-admin-auth', 'true');
       return true;
     }
     return false;
@@ -28,6 +58,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     setIsAuthenticated(false);
+    localStorage.removeItem('evp-admin-auth');
   };
 
   return (
