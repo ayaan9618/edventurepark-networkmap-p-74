@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { NetworkData } from '@/types/network';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured, checkSupabaseConnection } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 
 interface AdminContextType {
@@ -29,7 +29,28 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
   const checkAuthStatus = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      if (!checkSupabaseConnection()) {
+        // Fallback to localStorage if Supabase is not configured
+        const savedData = localStorage.getItem('evp-network-data');
+        const savedAuth = localStorage.getItem('evp-admin-auth');
+        
+        if (savedData) {
+          try {
+            const parsedData = JSON.parse(savedData);
+            setNetworkDataState(parsedData);
+          } catch (error) {
+            console.error('Failed to load saved network data:', error);
+          }
+        }
+        
+        if (savedAuth === 'true') {
+          setIsAuthenticated(true);
+        }
+        setIsLoading(false);
+        return;
+      }
+
+      const { data: { session } } = await supabase!.auth.getSession();
       if (session) {
         setIsAuthenticated(true);
         await loadNetworkData();
@@ -43,7 +64,11 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
   const loadNetworkData = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('get-network-data');
+      if (!checkSupabaseConnection()) {
+        return; // Data already loaded from localStorage in checkAuthStatus
+      }
+
+      const { data, error } = await supabase!.functions.invoke('get-network-data');
       
       if (error) {
         console.error('Error loading network data:', error);
@@ -70,12 +95,50 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
   const setNetworkData = (data: NetworkData | null) => {
     setNetworkDataState(data);
+    // Save to localStorage as backup when Supabase is not available
+    if (!isSupabaseConfigured) {
+      if (data) {
+        localStorage.setItem('evp-network-data', JSON.stringify(data));
+      } else {
+        localStorage.removeItem('evp-network-data');
+      }
+    }
   };
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase.auth.signInWithPassword({
+      
+      if (!checkSupabaseConnection()) {
+        // Fallback authentication for demo purposes
+        const DEMO_CREDENTIALS = [
+          { email: 'admin@edventure.com', password: 'edventure2024' },
+          { email: 'demo@admin.com', password: 'admin123' }
+        ];
+        
+        const isValidCredentials = DEMO_CREDENTIALS.some(
+          cred => cred.email === email && cred.password === password
+        );
+        
+        if (isValidCredentials) {
+          setIsAuthenticated(true);
+          localStorage.setItem('evp-admin-auth', 'true');
+          toast({
+            title: "Success",
+            description: "Logged in successfully (Demo Mode)"
+          });
+          return true;
+        } else {
+          toast({
+            title: "Login Failed",
+            description: "Invalid credentials",
+            variant: "destructive"
+          });
+          return false;
+        }
+      }
+
+      const { data, error } = await supabase!.auth.signInWithPassword({
         email,
         password
       });
@@ -115,7 +178,11 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async (): Promise<void> => {
     try {
-      await supabase.auth.signOut();
+      if (checkSupabaseConnection()) {
+        await supabase!.auth.signOut();
+      } else {
+        localStorage.removeItem('evp-admin-auth');
+      }
       setIsAuthenticated(false);
       setNetworkDataState(null);
       toast({
@@ -135,7 +202,19 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   const uploadNetworkData = async (data: NetworkData, filename: string): Promise<boolean> => {
     try {
       setIsLoading(true);
-      const { data: result, error } = await supabase.functions.invoke('upload-network-data', {
+      
+      if (!checkSupabaseConnection()) {
+        // Fallback to localStorage
+        setNetworkDataState(data);
+        localStorage.setItem('evp-network-data', JSON.stringify(data));
+        toast({
+          title: "Success",
+          description: `Uploaded ${data.people.length} people, ${data.startups.length} startups, and ${data.relationships.length} relationships (Local Storage)`
+        });
+        return true;
+      }
+
+      const { data: result, error } = await supabase!.functions.invoke('upload-network-data', {
         body: { networkData: data, filename }
       });
 
