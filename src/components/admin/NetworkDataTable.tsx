@@ -9,7 +9,7 @@ import { Users, Building2, GitBranch, Search } from 'lucide-react';
 
 interface NetworkDataTableProps {
   data: NetworkData;
-  onDataChange: (data: NetworkData) => void;
+  onDataChange?: (data: NetworkData) => void;
 }
 
 export const NetworkDataTable = ({ data, onDataChange }: NetworkDataTableProps) => {

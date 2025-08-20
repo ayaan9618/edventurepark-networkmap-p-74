@@ -12,24 +12,21 @@ import { Shield, Database, Users, Building2, GitBranch, Eye, LogOut } from 'luci
 import { Link } from 'react-router-dom';
 
 const AdminLogin = () => {
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login } = useAdmin();
+  const { login, isLoading } = useAdmin();
   const { toast } = useToast();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (login(password)) {
+    const success = await login(email, password);
+    if (success) {
       toast({
         title: "Welcome to Admin Panel",
         description: "You have successfully logged in.",
       });
-    } else {
-      toast({
-        title: "Login failed",
-        description: "Invalid password. Please try again.",
-        variant: "destructive",
-      });
     }
+    // Error handling is done in the AdminContext
   };
 
   return (
@@ -45,11 +42,24 @@ const AdminLogin = () => {
             Admin Access
           </h1>
           <p className="text-muted-foreground mt-2">
-            Enter password to manage Edventure Network
+            Sign in to manage Edventure Network
           </p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
+          <div>
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email"
+              className="mt-1"
+              required
+              disabled={isLoading}
+            />
+          </div>
           <div>
             <Label htmlFor="password">Password</Label>
             <Input
@@ -57,12 +67,14 @@ const AdminLogin = () => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter admin password"
+              placeholder="Enter your password"
               className="mt-1"
+              required
+              disabled={isLoading}
             />
           </div>
-          <Button type="submit" className="w-full">
-            Login to Admin Panel
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? "Signing in..." : "Sign In"}
           </Button>
         </form>
 
@@ -77,36 +89,37 @@ const AdminLogin = () => {
 };
 
 const AdminDashboard = () => {
-  const { networkData, setNetworkData, logout } = useAdmin();
+  const { networkData, uploadNetworkData, logout, isLoading } = useAdmin();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
 
   const handleFileUpload = async (file: File) => {
-    setIsLoading(true);
     try {
       const data = await parseExcelFile(file);
-      setNetworkData(data);
-      toast({
-        title: "Network data updated!",
-        description: `Loaded ${data.people.length} people, ${data.startups.length} startups, and ${data.relationships.length} relationships.`,
-      });
+      const success = await uploadNetworkData(data, file.name);
+      if (!success) {
+        toast({
+          title: "Upload failed",
+          description: "Failed to upload network data to database",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       toast({
         title: "Upload failed",
         description: error instanceof Error ? error.message : "Failed to parse the Excel file",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  const clearData = () => {
-    setNetworkData(null);
-    toast({
-      title: "Data cleared",
-      description: "Network data has been cleared.",
-    });
+  const clearData = async () => {
+    const success = await uploadNetworkData({ people: [], startups: [], relationships: [] }, 'cleared-data');
+    if (success) {
+      toast({
+        title: "Data cleared",
+        description: "Network data has been cleared from database.",
+      });
+    }
   };
 
   return (
@@ -138,9 +151,10 @@ const AdminDashboard = () => {
               size="sm" 
               onClick={logout}
               className="border-destructive/30 hover:bg-destructive/10"
+              disabled={isLoading}
             >
               <LogOut className="w-4 h-4 mr-2" />
-              Logout
+              {isLoading ? "Signing out..." : "Sign Out"}
             </Button>
           </div>
         </div>
@@ -200,7 +214,7 @@ const AdminDashboard = () => {
 
         {/* Data Management */}
         {networkData && (
-          <NetworkDataTable data={networkData} onDataChange={setNetworkData} />
+          <NetworkDataTable data={networkData} />
         )}
       </div>
     </div>
@@ -208,7 +222,18 @@ const AdminDashboard = () => {
 };
 
 const Admin = () => {
-  const { isAuthenticated } = useAdmin();
+  const { isAuthenticated, isLoading } = useAdmin();
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-network flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
   
   return isAuthenticated ? <AdminDashboard /> : <AdminLogin />;
 };
