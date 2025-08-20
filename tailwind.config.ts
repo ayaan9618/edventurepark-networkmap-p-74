@@ -61,7 +61,28 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				network: {
+					primary: 'hsl(var(--network-primary))',
+					secondary: 'hsl(var(--network-secondary))',
+					'node-person': 'hsl(var(--network-node-person))',
+					'node-startup': 'hsl(var(--network-node-startup))',
+					edge: 'hsl(var(--network-edge))',
+					background: 'hsl(var(--network-background))'
 				}
+			},
+			backgroundImage: {
+				'gradient-primary': 'var(--gradient-primary)',
+				'gradient-network': 'var(--gradient-network)',
+				'gradient-glow': 'var(--gradient-glow)'
+			},
+			boxShadow: {
+				'network': 'var(--shadow-network)',
+				'glow': 'var(--shadow-glow)'
+			},
+			transitionTimingFunction: {
+				'smooth': 'var(--transition-smooth)',
+				'bounce': 'var(--transition-bounce)'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
