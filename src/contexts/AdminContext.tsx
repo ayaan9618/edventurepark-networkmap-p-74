@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { NetworkData } from '@/types/network';
-import { supabase, isSupabaseConfigured, checkSupabaseConnection } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface AdminContextType {
@@ -29,28 +29,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
   const checkAuthStatus = async () => {
     try {
-      if (!checkSupabaseConnection()) {
-        // Fallback to localStorage if Supabase is not configured
-        const savedData = localStorage.getItem('evp-network-data');
-        const savedAuth = localStorage.getItem('evp-admin-auth');
-        
-        if (savedData) {
-          try {
-            const parsedData = JSON.parse(savedData);
-            setNetworkDataState(parsedData);
-          } catch (error) {
-            console.error('Failed to load saved network data:', error);
-          }
-        }
-        
-        if (savedAuth === 'true') {
-          setIsAuthenticated(true);
-        }
-        setIsLoading(false);
-        return;
-      }
-
-      const { data: { session } } = await supabase!.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setIsAuthenticated(true);
       }
@@ -65,15 +44,11 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
   const loadNetworkData = async () => {
     try {
-      if (!checkSupabaseConnection()) {
-        return; // Data already loaded from localStorage in checkAuthStatus
-      }
-
       // Load data directly from database tables
       const [peopleResult, startupsResult, relationshipsResult] = await Promise.all([
-        supabase!.from('people').select('*'),
-        supabase!.from('startups').select('*'),  
-        supabase!.from('relationships').select('*')
+        supabase.from('people').select('*'),
+        supabase.from('startups').select('*'),  
+        supabase.from('relationships').select('*')
       ]);
 
       if (peopleResult.error || startupsResult.error || relationshipsResult.error) {
@@ -116,50 +91,13 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
   const setNetworkData = (data: NetworkData | null) => {
     setNetworkDataState(data);
-    // Save to localStorage as backup when Supabase is not available
-    if (!isSupabaseConfigured) {
-      if (data) {
-        localStorage.setItem('evp-network-data', JSON.stringify(data));
-      } else {
-        localStorage.removeItem('evp-network-data');
-      }
-    }
   };
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       setIsLoading(true);
       
-      if (!checkSupabaseConnection()) {
-        // Fallback authentication for demo purposes
-        const DEMO_CREDENTIALS = [
-          { email: 'admin@edventure.com', password: 'edventure2024' },
-          { email: 'demo@admin.com', password: 'admin123' }
-        ];
-        
-        const isValidCredentials = DEMO_CREDENTIALS.some(
-          cred => cred.email === email && cred.password === password
-        );
-        
-        if (isValidCredentials) {
-          setIsAuthenticated(true);
-          localStorage.setItem('evp-admin-auth', 'true');
-          toast({
-            title: "Success",
-            description: "Logged in successfully (Demo Mode)"
-          });
-          return true;
-        } else {
-          toast({
-            title: "Login Failed",
-            description: "Invalid credentials",
-            variant: "destructive"
-          });
-          return false;
-        }
-      }
-
-      const { data, error } = await supabase!.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
@@ -199,11 +137,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async (): Promise<void> => {
     try {
-      if (checkSupabaseConnection()) {
-        await supabase!.auth.signOut();
-      } else {
-        localStorage.removeItem('evp-admin-auth');
-      }
+      await supabase.auth.signOut();
       setIsAuthenticated(false);
       setNetworkDataState(null);
       toast({
@@ -224,22 +158,11 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     try {
       setIsLoading(true);
       
-      if (!checkSupabaseConnection()) {
-        // Fallback to localStorage
-        setNetworkDataState(data);
-        localStorage.setItem('evp-network-data', JSON.stringify(data));
-        toast({
-          title: "Success",
-          description: `Uploaded ${data.people.length} people, ${data.startups.length} startups, and ${data.relationships.length} relationships (Local Storage)`
-        });
-        return true;
-      }
-
       // Clear existing data and insert new data
       const deleteResults = await Promise.all([
-        supabase!.from('relationships').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
-        supabase!.from('people').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
-        supabase!.from('startups').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+        supabase.from('relationships').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+        supabase.from('people').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+        supabase.from('startups').delete().neq('id', '00000000-0000-0000-0000-000000000000')
       ]);
 
       const deleteError = deleteResults.find(r => r.error)?.error;
@@ -255,7 +178,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
       // Insert new data
       const [peopleResult, startupsResult, relationshipsResult] = await Promise.all([
-        supabase!.from('people').insert(data.people.map(p => ({
+        supabase.from('people').insert(data.people.map(p => ({
           id: p.id,
           name: p.name,
           role: p.role,
@@ -263,14 +186,14 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
           linkedin_website: p.linkedinWebsite,
           is_founder: p.isFounder || false
         }))),
-        supabase!.from('startups').insert(data.startups.map(s => ({
+        supabase.from('startups').insert(data.startups.map(s => ({
           id: s.id,
           name: s.name,
           domain: s.domain,
           status: s.status,
           url: s.url
         }))),
-        supabase!.from('relationships').insert(data.relationships.map(r => ({
+        supabase.from('relationships').insert(data.relationships.map(r => ({
           person_id: r.personId,
           startup_id: r.startupId,
           role: r.role

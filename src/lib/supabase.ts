@@ -1,22 +1,16 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+const supabaseUrl = 'https://rlybynsxxrjbdedroizp.supabase.co'
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJseWJ5bnN4eHJqYmRlZHJvaXpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU2ODI5NDQsImV4cCI6MjA3MTI1ODk0NH0.WUSrLD3NE-Oar-mHAf85rQ_NnubKfAqt_zy1h8_8qBg'
 
 // Check if Supabase is configured
 export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey)
 
-// Create Supabase client only if environment variables are available
-export const supabase = isSupabaseConfigured 
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null
+// Create Supabase client
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // Helper function to check if Supabase is available
 export const checkSupabaseConnection = () => {
-  if (!isSupabaseConfigured) {
-    console.warn('Supabase not configured - falling back to local storage')
-    return false
-  }
   return true
 }
 
