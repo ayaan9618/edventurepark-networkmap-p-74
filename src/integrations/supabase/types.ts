@@ -14,7 +14,117 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      people: {
+        Row: {
+          created_at: string
+          id: string
+          interests: string[] | null
+          is_founder: boolean | null
+          linkedin_website: string | null
+          name: string
+          notes: string | null
+          role: string | null
+          sister_orgs: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          interests?: string[] | null
+          is_founder?: boolean | null
+          linkedin_website?: string | null
+          name: string
+          notes?: string | null
+          role?: string | null
+          sister_orgs?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          interests?: string[] | null
+          is_founder?: boolean | null
+          linkedin_website?: string | null
+          name?: string
+          notes?: string | null
+          role?: string | null
+          sister_orgs?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      relationships: {
+        Row: {
+          created_at: string
+          id: string
+          person_id: string
+          role: string | null
+          startup_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          person_id: string
+          role?: string | null
+          startup_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          person_id?: string
+          role?: string | null
+          startup_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relationships_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relationships_startup_id_fkey"
+            columns: ["startup_id"]
+            isOneToOne: false
+            referencedRelation: "startups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      startups: {
+        Row: {
+          created_at: string
+          domain: string | null
+          id: string
+          name: string
+          notes: string | null
+          status: string | null
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          domain?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          status?: string | null
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          domain?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          status?: string | null
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
