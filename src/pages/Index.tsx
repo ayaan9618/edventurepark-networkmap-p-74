@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FileUpload } from '@/components/FileUpload';
 import { NetworkGraph } from '@/components/NetworkGraph';
 import { NodeDetails } from '@/components/NodeDetails';
@@ -7,13 +7,23 @@ import { Card } from '@/components/ui/card';
 import { parseExcelFile, generateSampleData } from '@/utils/excelParser';
 import { NetworkData } from '@/types/network';
 import { useToast } from '@/hooks/use-toast';
-import { Network, Users, Building2, GitBranch } from 'lucide-react';
+import { useAdmin } from '@/contexts/AdminContext';
+import { Network, Users, Building2, GitBranch, Settings } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const Index = () => {
-  const [networkData, setNetworkData] = useState<NetworkData | null>(null);
   const [selectedNode, setSelectedNode] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { networkData, setNetworkData } = useAdmin();
+
+  // Load sample data on first visit if no data exists
+  useEffect(() => {
+    if (!networkData) {
+      const sampleData = generateSampleData();
+      setNetworkData(sampleData);
+    }
+  }, [networkData, setNetworkData]);
 
   const handleFileUpload = async (file: File) => {
     setIsLoading(true);
@@ -138,6 +148,16 @@ const Index = () => {
         </div>
         
         <div className="flex items-center space-x-2">
+          <Link to="/admin">
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="border-primary/30 hover:bg-primary/10"
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Admin Panel
+            </Button>
+          </Link>
           <Button 
             variant="outline" 
             size="sm"
