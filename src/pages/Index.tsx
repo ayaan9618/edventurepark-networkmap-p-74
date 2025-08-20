@@ -12,7 +12,7 @@ import { Link } from 'react-router-dom';
 
 const Index = () => {
   const [selectedNode, setSelectedNode] = useState<any>(null);
-  const { networkData, isAuthenticated, isLoading } = useAdmin();
+  const { networkData, isLoading } = useAdmin();
 
   const handleNodeClick = (nodeId: string, nodeData: any) => {
     setSelectedNode(nodeData);
@@ -42,36 +42,6 @@ const Index = () => {
     );
   }
 
-  // Show authentication required message
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gradient-network p-6 flex items-center justify-center">
-        <div className="text-center">
-          <div className="flex justify-center mb-6">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-glow opacity-50 rounded-full blur-2xl" />
-              <div className="relative p-6 bg-primary/10 rounded-full border border-primary/20">
-                <Network className="w-12 h-12 text-primary" />
-              </div>
-            </div>
-          </div>
-          <h1 className="text-5xl font-bold mb-4 bg-gradient-primary bg-clip-text text-transparent">
-            EVP Network
-          </h1>
-          <p className="text-xl text-muted-foreground mb-8">
-            Please login to view the network data.
-          </p>
-          <Link to="/admin">
-            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-network">
-              <Settings className="w-4 h-4 mr-2" />
-              Login to Admin Panel
-            </Button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
   // Show no data message
   if (!networkData) {
     return (
@@ -89,12 +59,12 @@ const Index = () => {
             EVP Network
           </h1>
           <p className="text-xl text-muted-foreground mb-8">
-            No network data available. Please use the admin panel to upload data.
+            No network data available. Please contact an admin to upload data.
           </p>
           <Link to="/admin">
             <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-network">
               <Settings className="w-4 h-4 mr-2" />
-              Go to Admin Panel
+              Admin Panel
             </Button>
           </Link>
         </div>

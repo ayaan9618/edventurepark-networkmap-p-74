@@ -31,20 +31,20 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     try {
       if (!checkSupabaseConnection()) {
         // Fallback to localStorage if Supabase is not configured
+        const savedData = localStorage.getItem('evp-network-data');
         const savedAuth = localStorage.getItem('evp-admin-auth');
+        
+        if (savedData) {
+          try {
+            const parsedData = JSON.parse(savedData);
+            setNetworkDataState(parsedData);
+          } catch (error) {
+            console.error('Failed to load saved network data:', error);
+          }
+        }
         
         if (savedAuth === 'true') {
           setIsAuthenticated(true);
-          // Only load data if authenticated
-          const savedData = localStorage.getItem('evp-network-data');
-          if (savedData) {
-            try {
-              const parsedData = JSON.parse(savedData);
-              setNetworkDataState(parsedData);
-            } catch (error) {
-              console.error('Failed to load saved network data:', error);
-            }
-          }
         }
         setIsLoading(false);
         return;
@@ -53,11 +53,9 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
       const { data: { session } } = await supabase!.auth.getSession();
       if (session) {
         setIsAuthenticated(true);
-        await loadNetworkData();
-      } else {
-        // Clear any existing data if not authenticated
-        setNetworkDataState(null);
       }
+      // Always try to load network data regardless of auth status
+      await loadNetworkData();
     } catch (error) {
       console.error('Error checking auth status:', error);
     } finally {

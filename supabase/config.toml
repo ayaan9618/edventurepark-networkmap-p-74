@@ -1,1 +1,4 @@
 project_id = "rlybynsxxrjbdedroizp"
+
+[functions.get-network-data]
+verify_jwt = false

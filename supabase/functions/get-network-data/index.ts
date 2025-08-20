@@ -23,17 +23,10 @@ serve(async (req) => {
       }
     )
 
-    // Verify user is authenticated
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
-    }
+    // For public access, we don't need authentication
+    // But we still verify if there's a valid session for admin features
+    const { data: { user } } = await supabase.auth.getUser()
+    console.log('User accessing network data:', user?.email || 'anonymous')
 
     // Fetch all data
     const [peopleResult, startupsResult, relationshipsResult] = await Promise.all([
